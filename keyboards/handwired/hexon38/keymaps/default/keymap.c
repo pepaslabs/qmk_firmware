@@ -2,6 +2,7 @@
 
 #include "hexon38.h"
 
+// Vanity abbreviations:
 #define A_ KC_A
 #define B_ KC_B
 #define C_ KC_C
@@ -28,6 +29,28 @@
 #define X_ KC_X
 #define Y_ KC_Y
 #define Z_ KC_Z
+#define F1_ KC_F1
+#define F2_ KC_F2
+#define F3_ KC_F3
+#define F4_ KC_F4
+#define F5_ KC_F5
+#define F6_ KC_F6
+#define F7_ KC_F7
+#define F8_ KC_F8
+#define F9_ KC_F9
+#define F10_ KC_F10
+#define F11_ KC_F11
+#define F12_ KC_F12
+#define LSHIFT KC_LSHIFT
+#define RSHIFT KC_RSHIFT
+#define COMMA KC_COMM
+#define SLASH KC_SLSH
+#define SPACE KC_SPC
+#define TAB KC_TAB
+#define BKSPC KC_BSPC
+#define ENTER KC_ENT
+#define PERIOD KC_DOT
+#define ______ KC_TRNS
 
 // Dual-role keys: modifier when held, alpha when tapped.
 #define A_CTL CTL_T(KC_A)
@@ -39,30 +62,60 @@
 #define L_ALT ALT_T(KC_L)
 #define COLN_CTL CTL_T(KC_SCLN)
 
-#define ______ KC_TRNS
-#define LSHIFT KC_LSHIFT
-#define RSHIFT KC_RSHIFT
-#define COMMA KC_COMM
-#define SLASH KC_SLSH
-#define SPACE KC_SPC
-#define TAB KC_TAB
-#define BKSPC KC_BSPC
-#define ENTER KC_ENT
-#define PERIOD KC_DOT
+// Dual-role keys: layer switch when held, alpha when tapped.
+#define R_L1 LT(1, KC_R)
+#define E_L2 LT(2, KC_E)
+#define W_L3 LT(3, KC_W)
+#define V_L4 LT(4, KC_V)
+#define C_L5 LT(5, KC_C)
+#define X_L6 LT(6, KC_X)
+#define Z_L7 LT(7, KC_Z)
+#define T_L8 LT(8, KC_T)
+#define G_L9 LT(9, KC_G)
+#define Q_L10 LT(10, KC_Q)
+#define B_L11 LT(11, KC_B)
 
+// Dual-role keys: layer switch when held, alpha when tapped.
+#define U_L1 LT(1, KC_U)
+#define I_L2 LT(2, KC_I)
+#define O_L3 LT(3, KC_O)
+#define M_L4 LT(4, KC_M)
+#define COMMA_L5 LT(5, KC_COMM)
+#define PEROD_L6 LT(6, KC_DOT)
+#define SLASH_L7 LT(7, KC_SLSH)
+#define Y_L8 LT(8, KC_Y)
+#define H_L9 LT(9, KC_H)
+#define P_L10 LT(10, KC_P)
+#define N_L11 LT(11, KC_N)
+
+// Layer names:
 #define BASE_LAYER LAYOUT
 #define BLANK_LAYER LAYOUT
-
+#define F_LAYER LAYOUT
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     BASE_LAYER(
 //                  ,--------+--------+--------+--------.    ,--------+--------+--------+--------.
-                        W_   ,   E_   ,   R_   ,   T_   ,        Y_   ,   U_   ,   I_   ,   O_   ,
-//|--------+--------+--------+--------+--------+--------|    |--------+--------+--------+--------+--------+--------.
-      Q_   ,  A_CTL ,  S_ALT ,  D_GUI ,  F_SFT ,   G_   ,        H_   ,  J_SFT ,  K_GUI ,  L_ALT ,COLN_CTL,   P_   ,
+                       W_L3  ,  E_L2  ,  R_L1  ,  T_L8  ,       Y_L8  ,  U_L1  ,  I_L2  ,  O_L3  ,
+//,--------+--------+--------+--------+--------+--------|    |--------+--------+--------+--------+--------+--------.
+     Q_L10 ,  A_CTL ,  S_ALT ,  D_GUI ,  F_SFT ,  G_L9  ,       H_L9  ,  J_SFT ,  K_GUI ,  L_ALT ,COLN_CTL,  P_L10 ,
 //|--------+--------+--------+--------+--------+--------'    `--------+--------+--------+--------+--------+--------|
-      B_   ,   Z_   ,   X_   ,   C_   ,   V_   ,                          M_   ,  COMMA , PERIOD ,  SLASH ,   N_   ,
+     B_L11 ,  Z_L7  ,  X_L6  ,  C_L5  ,  V_L4  ,                         M_L4  ,COMMA_L5,PEROD_L6,SLASH_L7,  N_L11 ,
+//`--------+--------+--------+--------+--------'                      `--------+--------+--------+--------+--------'
+
+//                  ,--------+--------+--------+--------.    ,--------+--------+--------+--------.
+                      LSHIFT ,  SPACE ,   TAB  ,  DEBUG ,       SPACE ,  BKSPC ,  ENTER , RSHIFT
+//                  `--------+--------+--------+--------'    `--------+--------+--------+--------'
+),
+
+    F_LAYER(
+//                  ,--------+--------+--------+--------.    ,--------+--------+--------+--------.
+                      ______ , ______ , ______ , ______ ,      ______ ,   F7_  ,   F8_  ,   F9_  ,
+//,--------+--------+--------+--------+--------+--------|    |--------+--------+--------+--------+--------+--------.
+    ______ ,  A_CTL ,  S_ALT ,  D_GUI ,  F_SFT , ______ ,       F10_  ,   F4_  ,   F5_  ,   F6_  ,  F11_  , ______ ,
+//|--------+--------+--------+--------+--------+--------'    `--------+--------+--------+--------+--------+--------|
+    ______ , ______ , ______ , ______ , ______ ,                          F1_  ,   F2_  ,   F3_  , ______ , ______ ,
 //`--------+--------+--------+--------+--------'                      `--------+--------+--------+--------+--------'
 
 //                  ,--------+--------+--------+--------.    ,--------+--------+--------+--------.
