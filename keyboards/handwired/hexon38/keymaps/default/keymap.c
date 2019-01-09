@@ -91,7 +91,7 @@
 // Layer names:
 #define BASE_LAYER LAYOUT
 #define BLANK_LAYER LAYOUT
-#define F_LAYER LAYOUT
+#define L1 LAYOUT
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
@@ -109,7 +109,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 //                  `--------+--------+--------+--------'    `--------+--------+--------+--------'
 ),
 
-    F_LAYER(
+    L1(
 //                  ,--------+--------+--------+--------.    ,--------+--------+--------+--------.
                       ______ , ______ , ______ , ______ ,      ______ ,   F7_  ,   F8_  ,   F9_  ,
 //,--------+--------+--------+--------+--------+--------|    |--------+--------+--------+--------+--------+--------.
@@ -119,7 +119,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 //`--------+--------+--------+--------+--------'                      `--------+--------+--------+--------+--------'
 
 //                  ,--------+--------+--------+--------.    ,--------+--------+--------+--------.
-                      LSHIFT ,  SPACE ,   TAB  ,  DEBUG ,       SPACE ,  BKSPC ,  ENTER , RSHIFT
+                      LSHIFT ,  SPACE ,   TAB  ,  DEBUG ,        A_   ,  BKSPC ,  ENTER , RSHIFT
 //                  `--------+--------+--------+--------'    `--------+--------+--------+--------'
 ),
 
@@ -243,21 +243,40 @@ void matrix_init_user(void) {
 void matrix_scan_user(void) {}
 
 /*
-a_ a-: emit a
-a_ b_ b- a-: emit SHIFT+b
-a_ b_ a- b-: emit a, b
-dual1down, dual1up -> norm1down, norm1up
-dual1down, norm2down, norm2up -> mod1down, norm2down, norm2up
-dual1down, norm2down, dual1up -> norm1down, norm2down, norm1up
-dual1down, dual2down, norm3down, norm3up -> mod1down, mod2down, norm3down, norm3up
-so, a dual key can't be disambiguated until the next keyup of a keydown (not including keyups from keys before it).
+A dual-role key can't be disambiguated until the next keyup of a keydown (not including keyups from keys before it).
 */
+
+bool is_MT_kc(uint16_t kc) {
+    switch (kc) {
+    case QK_MOD_TAP ... QK_MOD_TAP_MAX:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool is_LT_kc(uint16_t kc) {
+    switch (kc) {
+    case QK_LAYER_TAP ... QK_LAYER_TAP_MAX:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool is_MO_kc(uint16_t kc) {
+    switch (kc) {
+    case QK_MOMENTARY ... QK_MOMENTARY_MAX:
+        return true;
+    default:
+        return false;
+    }
+}
 
 bool is_ambiguous_kc(uint16_t kc) {
     // See the MT() define: https://github.com/qmk/qmk_firmware/blob/master/quantum/quantum_keycodes.h#L642
     // See the QK_MOD_TAP case: https://github.com/qmk/qmk_firmware/blob/master/quantum/keymap_common.c#L134
-    uint8_t mod = mod_config((kc >> 0x8) & 0x1F);
-    return mod != 0;
+    return is_MT_kc(kc) || is_LT_kc(kc);
 }
 
 bool is_down(pending_key_t *k) {
@@ -306,8 +325,7 @@ bool is_downup_pair(pending_key_t *k, pending_pair_t *p) {
 
 // given a QK_MOD_TAP keycode, return the KC_* version of the modifier keycode.
 uint16_t get_mod_kc(uint16_t keycode) {
-    uint8_t mod = mod_config((keycode >> 0x8) & 0x1F);
-    switch (mod) {
+    switch ((keycode >> 8) & 0x1F) {
     case MOD_LCTL:
         return KC_LCTL;
     case MOD_RCTL:
@@ -330,16 +348,9 @@ uint16_t get_mod_kc(uint16_t keycode) {
     }
 }
 
-bool is_mod_kc(uint16_t keycode) {
-    switch (keycode) {
-    case QK_MODS ... QK_MODS_MAX:
-        return true;
-    default:
-        return false;
-    }
-}
-
+// reinterpret the MT() events as e.g. KC_LCTL, etc.
 void interpret_as_mod(pending_pair_t *p) {
+    dprintf("  %s\n", __func__);
     // see https://github.com/qmk/qmk_firmware/issues/1503
     pending_key_t *k;
     k = p->down;
@@ -352,7 +363,24 @@ void interpret_as_mod(pending_pair_t *p) {
     }
 }
 
+// reinterpret the LT() events as MO().
+void interpret_as_momentary_layer(pending_pair_t *p) {
+    dprintf("  %s\n", __func__);
+    pending_key_t *k;
+    k = p->down;
+    if (k != NULL) {
+        uint8_t layer = (k->keycode >> 8) & 0xF;
+        k->keycode = (QK_MOMENTARY | layer);
+    }
+    k = p->up;
+    if (k != NULL) {
+        uint8_t layer = (k->keycode >> 8) & 0xF;
+        k->keycode = (QK_MOMENTARY | layer);
+    }
+}
+
 void interpret_as_normal(pending_pair_t *p) {
+    dprintf("  %s\n", __func__);
     pending_key_t *k;
     k = p->down;
     if (k != NULL) {
@@ -367,13 +395,14 @@ void interpret_as_normal(pending_pair_t *p) {
 void execute_head_and_pop(kring_t *ring) {
     pending_key_t *head = kring_get(ring, 0);
     uint16_t kc = head->keycode;
-    if (is_mod_kc(kc)) {
+    if (is_MO_kc(kc)) {
+        uint8_t layer = kc & 0xF;
         if (is_down(head)) {
-            dprintf("  %s: mod down 0x%04X\n", __func__, kc);
-            set_mods(get_mods() | MOD_BIT(kc));
+            dprintf("  %s: layer %d down 0x%04X\n", __func__, layer, kc);
+            layer_on(layer);
         } else {
-            dprintf("  %s: mod up 0x%04X\n", __func__, kc);
-            set_mods(get_mods() & ~MOD_BIT(kc));
+            dprintf("  %s: layer %d up 0x%04X\n", __func__, layer, kc);
+            layer_off(layer);
         }
     } else {
         if (is_down(head)) {
@@ -396,11 +425,20 @@ bool parse_next(kring_t *pending) {
         dprintf(" %s: found unambiguous key\n", __func__);
         execute_head_and_pop(pending);
         return true;
-    } else if (is_ambiguous_kc(first->keycode) && is_up(first)) {
-        dprintf(" %s: interpreting keyup as mod\n", __func__);
+    } else if (is_up(first)) {
         p.down = NULL;
         p.up = first;
-        interpret_as_mod(&p);
+        if (is_MT_kc(first->keycode)) {
+            dprintf(" %s: interpreting keyup as mod\n", __func__);
+            interpret_as_mod(&p);
+        } else if (is_LT_kc(first->keycode)) {
+            dprintf(" %s: interpreting keyup as momentary layer\n", __func__);
+            interpret_as_momentary_layer(&p);
+        } else {
+            // oops, this should never happen.
+            dprintf(" %s: LOGIC ERROR!\n", __func__);
+            return false;
+        }
         execute_head_and_pop(pending);
         return true;
     } else if (is_downup_pair(first, &p)) {
@@ -416,10 +454,20 @@ bool parse_next(kring_t *pending) {
         pending_key_t *next = first->next;
         while (next != NULL) {
             if (is_downup_pair(next, NULL)) {
-                dprintf(" %s: found subsequent downup pair, interpreting head as mod\n", __func__);
+                dprintf(" %s: found subsequent downup pair, ", __func__);
                 p.down = first;
                 p.up = NULL;
-                interpret_as_mod(&p);
+                if (is_MT_kc(first->keycode)) {
+                    dprintf("interpreting head as mod\n");
+                    interpret_as_mod(&p);
+                } else if (is_LT_kc(first->keycode)) {
+                    dprintf("interpreting head as momentary layer\n");
+                    interpret_as_momentary_layer(&p);
+                } else {
+                    // oops, this should never happen.
+                    dprintf("LOGIC ERROR!\n", __func__);
+                    return false;
+                }
                 execute_head_and_pop(pending);
                 return true;
             }
